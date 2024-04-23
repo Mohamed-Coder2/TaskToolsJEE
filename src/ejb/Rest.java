@@ -1,14 +1,12 @@
 package ejb;
 
 import javax.ejb.Stateful;
-
+import javax.persistence.Entity;
 @Stateful
+@Entity
 public class Rest {
-
     String Operation;
     int Number1, Number2;
-
-
     public String getOperation() {
         return Operation;
     }

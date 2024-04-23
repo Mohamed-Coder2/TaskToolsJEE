@@ -11,33 +11,27 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
 import ejb.Rest;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
 
 @Stateful
 @Path("/rest")
 public class RestService {
 
+    @PersistenceContext(unitName="hello")
+    private EntityManager entityManager;
+
     @EJB
     Rest rest;
-
-    List<Rest> history = new ArrayList<>();
 
     @GET
     @Path("/history")
     @Produces(MediaType.TEXT_PLAIN)
-    public String getHistory() {
-        if (history.isEmpty()) {
-            return "History List is Empty :(";
-        } else {
-            JsonArrayBuilder jsonArrayBuilder = Json.createArrayBuilder();
-            for (Rest item : history) {
-                jsonArrayBuilder.add(Json.createObjectBuilder()
-                        .add("Number1", item.getNumber1())
-                        .add("Operation", item.getOperation())
-                        .add("Number2", item.getNumber2())
-                );
-            }
-            return jsonArrayBuilder.build().toString();
-        }
+    public List<Rest> getHistory() {
+        String simpleQuery = "SELECT Number1,Number2,Operation FROM Rest";
+        Query query = entityManager.createQuery(simpleQuery);
+        List<Rest> list = query.getResultList();
+        return list;
     }
 
     @POST
@@ -55,31 +49,12 @@ public class RestService {
             // Calculate the result
             double result = calculate(number1, number2, operation);
 
-            // Persist the calculation to the history
-            Rest calc = new Rest();
-            calc.setNumber1(number1);
-            calc.setNumber2(number2);
-            calc.setOperation(operation);
-            history.add(calc);
-            
-            //Log the state of the history list
-            logHistory();
-
             return String.valueOf(result);
         } catch (Exception e) {
             e.printStackTrace();
             return "Error: " + e.getMessage();
         }
     }
-    
-    private void logHistory() {
-        System.out.println("Size of history list: " + history.size());
-        System.out.println("Contents of history list:");
-        for (Rest item : history) {
-            System.out.println(item.getNumber1() + " " + item.getOperation() + " " + item.getNumber2());
-        }
-    }
-
     private double calculate(int number1, int number2, String operation) {
         switch (operation) {
             case "+":

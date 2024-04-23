@@ -1,42 +1,44 @@
 package app;
 
-import java.io.StringReader;
-import java.util.ArrayList;
-import java.util.List;
 import javax.ejb.EJB;
 import javax.ejb.Stateful;
 import javax.json.Json;
+import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
+import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.List;
 import ejb.Rest;
-
-//import java.util.Collections;
-//import javax.persistence.EntityManager;
-//import javax.persistence.PersistenceContext;
-//import javax.persistence.TypedQuery;
 
 @Stateful
 @Path("/rest")
 public class RestService {
 
-    //@PersistenceContext(unitName = "hello")
-    //private EntityManager entityManager;
-	@EJB
+    @EJB
     Rest rest;
-    ArrayList<Rest> history = new ArrayList<>();
+
+    List<Rest> history = new ArrayList<>();
 
     @GET
     @Path("/history")
-    @Produces(MediaType.APPLICATION_JSON)
-    public List<Rest> getHistory() {
-    	return history;
+    @Produces(MediaType.TEXT_PLAIN)
+    public String getHistory() {
+        if (history.isEmpty()) {
+            return "History List is Empty :(";
+        } else {
+            JsonArrayBuilder jsonArrayBuilder = Json.createArrayBuilder();
+            for (Rest item : history) {
+                jsonArrayBuilder.add(Json.createObjectBuilder()
+                        .add("Number1", item.getNumber1())
+                        .add("Operation", item.getOperation())
+                        .add("Number2", item.getNumber2())
+                );
+            }
+            return jsonArrayBuilder.build().toString();
+        }
     }
-
 
     @POST
     @Path("/calc")
@@ -53,12 +55,15 @@ public class RestService {
             // Calculate the result
             double result = calculate(number1, number2, operation);
 
-            // Persist the calculation to the database
-            //Rest calc = new Rest();
-            //calc.setNumber1(number1);
-            //calc.setNumber2(number2);
-            //calc.setOperation(operation);
-            //entityManager.persist(calc);
+            // Persist the calculation to the history
+            Rest calc = new Rest();
+            calc.setNumber1(number1);
+            calc.setNumber2(number2);
+            calc.setOperation(operation);
+            history.add(calc);
+            
+            //Log the state of the history list
+            logHistory();
 
             return String.valueOf(result);
         } catch (Exception e) {
@@ -66,8 +71,14 @@ public class RestService {
             return "Error: " + e.getMessage();
         }
     }
-
-
+    
+    private void logHistory() {
+        System.out.println("Size of history list: " + history.size());
+        System.out.println("Contents of history list:");
+        for (Rest item : history) {
+            System.out.println(item.getNumber1() + " " + item.getOperation() + " " + item.getNumber2());
+        }
+    }
 
     private double calculate(int number1, int number2, String operation) {
         switch (operation) {
